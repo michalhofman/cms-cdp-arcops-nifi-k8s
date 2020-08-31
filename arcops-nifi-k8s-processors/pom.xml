@@ -23,9 +23,13 @@
             <artifactId>nifi-processor-utils</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-amqp-processors</artifactId>
+            <groupId>com.rabbitmq</groupId>
+            <artifactId>amqp-client</artifactId>
         </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.apache.nifi</groupId>-->
+<!--            <artifactId>nifi-amqp-processors</artifactId>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service-api</artifactId>
