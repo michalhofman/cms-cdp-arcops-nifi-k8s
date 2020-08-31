@@ -210,6 +210,18 @@
         </dependencies>
     </dependencyManagement>
 
+    <distributionManagement>
+        <repository>
+            <id>mtvn-proximity</id>
+            <url>http://nexus.mtvi.com/nexus/content/repositories/releases</url>
+        </repository>
+        <snapshotRepository>
+            <id>mtvn-proximity</id>
+            <name>MTVN Snapshot Repository</name>
+            <url>http://nexus.mtvi.com/nexus/content/repositories/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <repositories>
         <repository>
             <id>mtvn-proximity</id>
