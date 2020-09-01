@@ -161,8 +161,7 @@ public class ConsumeAMQPToDatabase extends ExtendedConsumeAMQP {
                 BasicProperties amqpProperties = response.getProps();
 
                 Map<String, String> attributes = this.buildAttributes(amqpProperties);
-                attributes.put("amqp$routingKey", response.getEnvelope().getRoutingKey() != null
-                    ? response.getEnvelope().getRoutingKey() : UUID.randomUUID().toString());
+                attributes.put("amqp$routingKey", response.getEnvelope().getRoutingKey());
 
                 dbLogger.save(response.getBody(), attributes);
 

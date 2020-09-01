@@ -17,6 +17,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Tags({"amqp", "rabbit", "get", "message", "receive", "consume"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -115,7 +116,7 @@ public class ExtendedConsumeAMQP extends ConsumeAMQP {
         this.addAttribute(attributes, "amqp$correlationId", properties.getCorrelationId());
         this.addAttribute(attributes, "amqp$replyTo", properties.getReplyTo());
         this.addAttribute(attributes, "amqp$expiration", properties.getExpiration());
-        this.addAttribute(attributes, "amqp$messageId", properties.getMessageId());
+        this.addAttribute(attributes, "amqp$messageId", properties.getMessageId() == null ? UUID.randomUUID().toString() : properties.getMessageId());
         this.addAttribute(attributes, "amqp$timestamp", properties.getTimestamp() == null ? null : properties.getTimestamp().getTime());
         this.addAttribute(attributes, "amqp$type", properties.getType());
         this.addAttribute(attributes, "amqp$userId", properties.getUserId());
