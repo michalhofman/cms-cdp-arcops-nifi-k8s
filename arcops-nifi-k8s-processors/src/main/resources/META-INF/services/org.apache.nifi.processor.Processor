@@ -1,3 +1,4 @@
 com.viacom.arcops.nifi.LogToDbProcessor
+com.viacom.arcops.nifi.PenalizingProcessor
 org.apache.nifi.amqp.processors.ExtendedConsumeAMQP
 org.apache.nifi.amqp.processors.ConsumeAMQPToDatabase
