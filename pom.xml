@@ -22,6 +22,12 @@
         <junit.jupiter.version>5.6.2</junit.jupiter.version>
     </properties>
 
+    <scm>
+        <url>https://stash.mtvi.com/projects/CDP/repos/arcops-nifi-k8s/browse</url>
+        <connection>scm:git:ssh://git@stash.mtvi.com/cdp/arcops-nifi-k8s.git</connection>
+        <developerConnection>scm:git:ssh://git@stash.mtvi.com/cdp/arcops-nifi-k8s.git</developerConnection>
+    </scm>
+
     <build>
         <plugins>
             <plugin>
