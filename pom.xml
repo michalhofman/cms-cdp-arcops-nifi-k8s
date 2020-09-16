@@ -4,7 +4,7 @@
 
     <groupId>com.viacom.arcops</groupId>
     <artifactId>arcops-nifi-k8s</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -26,7 +26,7 @@
         <url>https://stash.mtvi.com/projects/CDP/repos/arcops-nifi-k8s/browse</url>
         <connection>scm:git:ssh://git@stash.mtvi.com/cdp/arcops-nifi-k8s.git</connection>
         <developerConnection>scm:git:ssh://git@stash.mtvi.com/cdp/arcops-nifi-k8s.git</developerConnection>
-        <tag>v1.0.0</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <build>
