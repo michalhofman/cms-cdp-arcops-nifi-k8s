@@ -9,7 +9,6 @@
 
     <modules>
         <module>arcops-nifi-k8s-processors</module>
-        <module>arcops-nifi-k8s-nar</module>
     </modules>
 
     <properties>
