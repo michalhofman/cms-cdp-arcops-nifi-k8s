@@ -2,4 +2,5 @@ vmnPipeline('java-maven') {
     jdkVersionMajor '11'
     jdkVersionMinor '6'
     mavenVersion '3.6.3'
+    deployWith('dummy')
 }
