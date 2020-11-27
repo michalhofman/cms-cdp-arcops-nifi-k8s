@@ -5,10 +5,10 @@ import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 
-class NiFiProperties {
+public class NiFiProperties {
 
-    static final String ATTR_EXCEPTION_MESSAGE = "exception.message";
-    static final String ATTR_EXCEPTION_STACKTRACE = "exception.stacktrace";
+    public static final String ATTR_EXCEPTION_MESSAGE = "exception.message";
+    public static final String ATTR_EXCEPTION_STACKTRACE = "exception.stacktrace";
 
     static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
             .name("Database Controller Service")

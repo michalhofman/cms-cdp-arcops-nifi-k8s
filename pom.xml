@@ -20,6 +20,7 @@
         <apache.nifi.version>1.11.4</apache.nifi.version>
         <slf4j.version>1.7.30</slf4j.version>
         <junit.jupiter.version>5.6.2</junit.jupiter.version>
+        <jackson.version>2.9.5</jackson.version>
     </properties>
 
     <scm>
@@ -208,6 +209,21 @@
                 <artifactId>lombok</artifactId>
                 <version>1.18.12</version>
                 <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.viacom.arcops.uca</groupId>
+                <artifactId>arcops-ucacrud-processor</artifactId>
+                <version>0.3.8</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-guava</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-jsr310</artifactId>
+                <version>${jackson.version}</version>
             </dependency>
 
             <dependency>
