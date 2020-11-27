@@ -4,7 +4,7 @@
 
     <groupId>com.viacom.arcops</groupId>
     <artifactId>arcops-nifi-k8s</artifactId>
-    <version>1.0.1-SNAPSOT</version>
+    <version>1.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
