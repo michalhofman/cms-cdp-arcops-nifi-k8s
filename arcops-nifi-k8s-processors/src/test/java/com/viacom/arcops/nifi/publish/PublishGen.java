@@ -22,7 +22,6 @@ class PublishGen {
 
     static PublishResponse publishFailureBecauseOfPubsetCreationFailure(boolean isArcError) {
         PublishResponse.CreatePublishSetResponse createPublishSetFailure = isArcError ? createPublishSetArcFailure() : createPublishSetNonArcFailure();
-        String failureDescription = createPublishSetFailure.getFailureDescription().orElse(null);
 
         PublishResponse publishResponseMock = mock(PublishResponse.class);
 
@@ -30,7 +29,7 @@ class PublishGen {
         when(publishResponseMock.getPublishSetResponse()).thenReturn(createPublishSetFailure);
         when(publishResponseMock.getPublishToArcStageResponses()).thenReturn(emptyList());
         when(publishResponseMock.getFailureCode()).thenReturn(UcaErrorCodes.PUBSET_CREATION_FAILED);
-        when(publishResponseMock.getFailureDescription()).thenReturn(failureDescription);
+        when(publishResponseMock.getFailureDescription()).thenReturn("failureDescription");
         when(publishResponseMock.getFailureSummary()).thenReturn("createPublishSet failed " + string());
 
         return publishResponseMock;
