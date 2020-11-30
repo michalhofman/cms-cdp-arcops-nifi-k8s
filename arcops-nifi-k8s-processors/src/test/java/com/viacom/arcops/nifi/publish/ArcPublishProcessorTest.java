@@ -24,7 +24,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 
 import java.io.IOException;
 import java.util.function.Function;
@@ -35,6 +34,7 @@ import static com.google.common.base.Charsets.UTF_8;
 import static com.viacom.arcops.nifi.NiFiProperties.ATTR_EXCEPTION_MESSAGE;
 import static com.viacom.arcops.nifi.NiFiProperties.ATTR_EXCEPTION_STACKTRACE;
 import static com.viacom.arcops.nifi.publish.ArcPublishProcessor.*;
+import static com.viacom.arcops.uca.UcaErrorCodes.PUBSET_CREATION_FAILED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -306,6 +306,12 @@ class ArcPublishProcessorTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PUBLISH_FAILURE_PUBSET_CREATION, 1);
+        runner.getFlowFilesForRelationship(PUBLISH_FAILURE_PUBSET_CREATION).stream()
+              .findFirst()
+              .ifPresent(f -> {
+                  f.assertAttributeEquals("errorCode", PUBSET_CREATION_FAILED);
+                  f.assertAttributeExists("errorCodeDescription");
+              });
     }
 
     @Test

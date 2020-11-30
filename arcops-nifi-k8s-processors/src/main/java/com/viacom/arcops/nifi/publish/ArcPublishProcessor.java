@@ -16,6 +16,8 @@ import com.viacom.arcops.uca.UcaWriteService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -50,6 +52,11 @@ import static org.apache.nifi.processor.util.StandardValidators.NON_NEGATIVE_INT
 @Tags({"ARC", "WON", "PTS", "MVI"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @CapabilityDescription("ArcPublishProcessor is used to publish list of ids to specified sites and environments")
+@WritesAttributes({
+    @WritesAttribute(attribute = "errorCode", description = "One of the UCA Error Codes associated with publishing failures, if publish fails during ARC operation"),
+    @WritesAttribute(attribute = "errorCodeDescription", description = "User friendly description of `errorCode` associated with publishing failures, "
+        + "if publish fails during ARC operation")
+})
 public class ArcPublishProcessor extends GuiceConfiguredProcessor {
 
     static final long DEFAULT_ARC_TIMEOUT = 60000L;
@@ -269,8 +276,17 @@ public class ArcPublishProcessor extends GuiceConfiguredProcessor {
         }
         FlowFile outputFlowFile = stringToNewFlowFile(flowFileContent, session, flowFile);
         Relationship destination = publishResponse.isSuccess() ? PUBLISH_SUCCESS : mapFailureCodeToRelationship(publishOutput.getFailureCode());
+        outputFlowFile = addNonNullAttribute(session, outputFlowFile, "errorCode", publishOutput.getFailureCode());
+        outputFlowFile = addNonNullAttribute(session, outputFlowFile, "errorCodeDescription", publishOutput.getFailureDescription());
         log.debug("Transferring to {}: {}", destination, flowFileContent);
         session.transfer(outputFlowFile, destination);
+    }
+
+    private FlowFile addNonNullAttribute(ProcessSession session, FlowFile outputFlowFile, String key, String value) {
+        if (key != null && value != null) {
+            outputFlowFile = session.putAttribute(outputFlowFile, key, value);
+        }
+        return outputFlowFile;
     }
 
     private Relationship mapFailureCodeToRelationship(String failureCode) {
