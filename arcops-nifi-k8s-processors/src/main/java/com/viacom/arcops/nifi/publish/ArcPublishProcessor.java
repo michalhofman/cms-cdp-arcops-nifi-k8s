@@ -283,7 +283,7 @@ public class ArcPublishProcessor extends GuiceConfiguredProcessor {
     }
 
     private FlowFile addNonNullAttribute(ProcessSession session, FlowFile outputFlowFile, String key, String value) {
-        if (key != null && value != null) {
+        if (value != null && key != null) {
             outputFlowFile = session.putAttribute(outputFlowFile, key, value);
         }
         return outputFlowFile;
