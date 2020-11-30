@@ -18,7 +18,7 @@ public abstract class GuiceConfiguredProcessor extends AbstractProcessor {
     public GuiceConfiguredProcessor() {
     }
 
-    GuiceConfiguredProcessor(Injector testInjector) {
+    protected GuiceConfiguredProcessor(Injector testInjector) {
         this.testInjector = testInjector;
     }
 
