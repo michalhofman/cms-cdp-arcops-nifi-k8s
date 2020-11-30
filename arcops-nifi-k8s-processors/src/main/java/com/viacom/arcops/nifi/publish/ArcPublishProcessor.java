@@ -1,13 +1,13 @@
 package com.viacom.arcops.nifi.publish;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
+import com.google.inject.Injector;
 import com.google.inject.Module;
 import com.viacom.arcops.nifi.GuiceConfiguredProcessor;
 import com.viacom.arcops.uca.PublishResponse;
@@ -19,6 +19,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -44,11 +45,11 @@ import static org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace;
 import static org.apache.nifi.processor.util.StandardValidators.NON_BLANK_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR;
 
-@EventDriven
-@InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"ARC", "WON", "PTS"})
-@CapabilityDescription("CableLabsIngestionProcessor is used to ingest CableLabsMessage and returns Ingestion status and its response")
 @Slf4j
+@EventDriven
+@Tags({"ARC", "WON", "PTS", "MVI"})
+@InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
+@CapabilityDescription("ArcPublishProcessor is used to publish list of ids to specified sites and environments")
 public class ArcPublishProcessor extends GuiceConfiguredProcessor {
 
     static final long DEFAULT_ARC_TIMEOUT = 60000L;
@@ -62,7 +63,7 @@ public class ArcPublishProcessor extends GuiceConfiguredProcessor {
             .name("publish.arc.server")
             .description("Arc server name")
             .required(true)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(NON_BLANK_VALIDATOR)
             .build();
 
@@ -70,7 +71,7 @@ public class ArcPublishProcessor extends GuiceConfiguredProcessor {
             .name("publish.arc.environment")
             .description("Arc environment")
             .required(true)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(NON_BLANK_VALIDATOR)
             .build();
 
@@ -78,7 +79,7 @@ public class ArcPublishProcessor extends GuiceConfiguredProcessor {
             .name("publish.site")
             .description("Site to publish to")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(NON_BLANK_VALIDATOR)
             .build();
 
@@ -86,7 +87,7 @@ public class ArcPublishProcessor extends GuiceConfiguredProcessor {
             .name("publish.stage")
             .description("Stage to publish from: authoring (publishing from authoring to staging) or staging (publishing from staging to live)")
             .required(false)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues("authoring", "staging")
             .build();
 
@@ -94,7 +95,7 @@ public class ArcPublishProcessor extends GuiceConfiguredProcessor {
             .name("publish.username")
             .description("Username to publish on behalf of")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(NON_BLANK_VALIDATOR)
             .build();
 
@@ -102,7 +103,7 @@ public class ArcPublishProcessor extends GuiceConfiguredProcessor {
             .name("publish.unpublish")
             .description("Flag to toggle betweent publish and unpublish")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(NON_BLANK_VALIDATOR)
             .build();
 
@@ -110,7 +111,7 @@ public class ArcPublishProcessor extends GuiceConfiguredProcessor {
             .name("publish.arcTimeout")
             .description("Timeout in milliseconds used when talking to Arc (used as connection timeout as well as read timeout). 0 means infinity.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(NON_NEGATIVE_INTEGER_VALIDATOR)
             .defaultValue(Long.toString(DEFAULT_ARC_TIMEOUT))
             .build();
@@ -119,7 +120,7 @@ public class ArcPublishProcessor extends GuiceConfiguredProcessor {
             .name("publish.statusCheckRetry.delay")
             .description("Delay in milliseconds between two consecutive checks whether the publish succeeded")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(NON_NEGATIVE_INTEGER_VALIDATOR)
             .defaultValue(Long.toString(DEFAULT_PUBLISH_STATUS_CHECK_RETRY_DELAY))
             .build();
@@ -128,7 +129,7 @@ public class ArcPublishProcessor extends GuiceConfiguredProcessor {
             .name("publish.statusCheckRetry.count")
             .description("Number of retries when checking whether the publish succeeded before assuming failure")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(NON_NEGATIVE_INTEGER_VALIDATOR)
             .defaultValue(Integer.toString(DEFAULT_PUBLISH_STATUS_CHECK_RETRY_COUNT))
             .build();
@@ -137,7 +138,7 @@ public class ArcPublishProcessor extends GuiceConfiguredProcessor {
             .name("publish.httpRequestRetry.delay")
             .description("Delay in milliseconds before retying an http request (a publish request or a publish status check request)")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(NON_NEGATIVE_INTEGER_VALIDATOR)
             .defaultValue(Long.toString(DEFAULT_HTTP_REQUEST_RETRY_DELAY))
             .build();
@@ -146,7 +147,7 @@ public class ArcPublishProcessor extends GuiceConfiguredProcessor {
             .name("publish.httpRequestRetry.count")
             .description("Number of retries for an http request (a publish request or publish status check request)")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(NON_NEGATIVE_INTEGER_VALIDATOR)
             .defaultValue(Integer.toString(DEFAULT_HTTP_REQUEST_RETRY_COUNT))
             .build();
@@ -155,7 +156,7 @@ public class ArcPublishProcessor extends GuiceConfiguredProcessor {
             .name("publish.stagingToLiveDelay")
             .description("Delay in milliseconds between the end of the successful publishing to staging (i.e. the end of the publishing status check that indicates success) and the beginning of the publishing to live")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(NON_NEGATIVE_INTEGER_VALIDATOR)
             .defaultValue(Long.toString(DEFAULT_STAGING_TO_LIVE_DELAY))
             .build();
@@ -185,23 +186,29 @@ public class ArcPublishProcessor extends GuiceConfiguredProcessor {
             .name("publishFailureCheckPublishStatusArcTimeout")
             .build();
 
-    private final ObjectMapper objectMapper;
 
     private final AtomicReference<UcaWriteService> ucaWriteService = new AtomicReference<>();
     private final AtomicReference<String> arcServer = new AtomicReference<>();
     private final AtomicReference<String> arcEnvironment = new AtomicReference<>();
     private final AtomicReference<String> transitUri = new AtomicReference<>();
+    private final ObjectMapper objectMapper = initializeObjectMapper();
 
-    @SuppressWarnings({"WeakerAccess"})
+    //for tests only
+    ArcPublishProcessor(Injector injector) {
+        super(injector);
+    }
+
+    @SuppressWarnings({"WeakerAccess", "unused"})
     public ArcPublishProcessor() {
-        objectMapper = new ObjectMapper();
+    }
+
+    private ObjectMapper initializeObjectMapper() {
+        ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new GuavaModule());
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.setSerializationInclusion(NON_NULL);
-        if (log.isDebugEnabled()) {
-            objectMapper.setDefaultPrettyPrinter(new DefaultPrettyPrinter());
-        }
+        return objectMapper;
     }
 
     @Override
@@ -210,7 +217,6 @@ public class ArcPublishProcessor extends GuiceConfiguredProcessor {
         arcEnvironment.set(context.getProperty(ARC_ENVIRONMENT_DESCRIPTOR).getValue());
         transitUri.set(arcEnvironment.get() + '@' + arcServer.get());
         ucaWriteService.set(initializeInjector(context).getInstance(UcaWriteService.class));
-
 
         log.info("Scheduled {} with arcServer={} and arcEnvironment={}", ArcPublishProcessor.class.getSimpleName(), arcServer.get(), arcEnvironment.get());
 
