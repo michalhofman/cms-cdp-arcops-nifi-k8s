@@ -1,6 +1,7 @@
 package com.viacom.arcops.nifi;
 
 import com.google.common.collect.Sets;
+import com.google.inject.Injector;
 import com.google.inject.Module;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -59,6 +60,11 @@ public class DatasetReaderProcessor extends GuiceConfiguredProcessor {
     private String datasetQuery;
 
     @SuppressWarnings("unused")
+    DatasetReaderProcessor(Injector injector) {
+        super(injector);
+    }
+
+    @SuppressWarnings("unused")
     public DatasetReaderProcessor() {}
 
     @OnScheduled
@@ -86,7 +92,7 @@ public class DatasetReaderProcessor extends GuiceConfiguredProcessor {
                         flowFile = stringToNewFlowFile(resultSet.getString(bodyColumn.get()), processSession, flowFile);
                     }
                     for (String column : attributeColumns) {
-                        processSession.putAttribute(flowFile, column, resultSet.getString(column));
+                        processSession.putAttribute(flowFile, column.toLowerCase(), resultSet.getString(column));
                     }
                     log.trace("Sending flowfile: {}", attributeColumns);
                     processSession.transfer(flowFile, SUCCESS);
@@ -95,7 +101,7 @@ public class DatasetReaderProcessor extends GuiceConfiguredProcessor {
                 log.trace("Empty dataset");
             }
         } catch (Exception ex) {
-            log.error("Exception: {}", ex.getMessage());
+            log.error("Exception in DatasetReaderProcessor: {}", ex.getMessage());
             FlowFile flowFile = processSession.create();
             flowFile = processSession.putAttribute(flowFile, ATTR_EXCEPTION_MESSAGE, getMessage(ex));
             flowFile = processSession.putAttribute(flowFile, ATTR_EXCEPTION_STACKTRACE, getStackTrace(ex));
@@ -105,20 +111,20 @@ public class DatasetReaderProcessor extends GuiceConfiguredProcessor {
 
     private List<String> getAttributeColumnLabels(ResultSetMetaData resultSetMetaData) throws SQLException {
         List<String> columns = new ArrayList<>();
-        int columnCount = resultSetMetaData.getColumnCount();
-        while (--columnCount >= 0) {
-            if (!resultSetMetaData.getColumnLabel(columnCount).equals(columnForFlowFileBody)) {
-                columns.add(resultSetMetaData.getColumnLabel(columnCount));
+        int columnId = resultSetMetaData.getColumnCount()+1;
+        while (--columnId > 0) {
+            if (!resultSetMetaData.getColumnLabel(columnId).equals(columnForFlowFileBody)) {
+                columns.add(resultSetMetaData.getColumnLabel(columnId));
             }
         }
         return columns;
     }
 
     private Optional<String> getBodyColumnLabel(ResultSetMetaData resultSetMetaData) throws SQLException {
-        int n = resultSetMetaData.getColumnCount();
-        while (--n >= 0) {
-            if (resultSetMetaData.getColumnLabel(n).equals(columnForFlowFileBody)) {
-                return Optional.of(resultSetMetaData.getColumnLabel(n));
+        int columnId = resultSetMetaData.getColumnCount()+1;
+        while (--columnId > 0) {
+            if (resultSetMetaData.getColumnLabel(columnId).equals(columnForFlowFileBody)) {
+                return Optional.of(resultSetMetaData.getColumnLabel(columnId));
             }
         }
         return Optional.empty();
