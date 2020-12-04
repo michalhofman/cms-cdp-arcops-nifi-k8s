@@ -19,10 +19,12 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.sql.*;
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.viacom.arcops.nifi.NiFiProperties.*;
 import static com.viacom.arcops.nifi.NiFiUtils.stringToNewFlowFile;
@@ -55,7 +57,7 @@ public class DatasetReaderProcessor extends GuiceConfiguredProcessor {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
-    private DBCPService dbcpService;
+    private JdbcTemplate jdbcTemplate;
     private String columnForFlowFileBody;
     private String datasetQuery;
 
@@ -70,7 +72,7 @@ public class DatasetReaderProcessor extends GuiceConfiguredProcessor {
     @OnScheduled
     @SuppressWarnings("unused")
     public void setup(final ProcessContext processContext) {
-        dbcpService = initializeInjector(processContext).getInstance(DBCPService.class);
+        jdbcTemplate = initializeInjector(processContext).getInstance(JdbcTemplate.class);
         datasetQuery = processContext.getProperty(QUERY).getValue();
         columnForFlowFileBody = processContext.getProperty(BODY_COLUMN).getValue();
     }
@@ -78,28 +80,21 @@ public class DatasetReaderProcessor extends GuiceConfiguredProcessor {
     @Override
     public void onTrigger(ProcessContext processContext, ProcessSession processSession) throws ProcessException {
         try {
-            Connection connection = dbcpService.getConnection();
             log.info("Reading dataset: {}", datasetQuery);
-            CallableStatement statement = connection.prepareCall(datasetQuery);
-            ResultSet resultSet = statement.executeQuery();
-            if (resultSet.first()) {
-                ResultSetMetaData metaData = resultSet.getMetaData();
-                List<String> attributeColumns = getAttributeColumnLabels(metaData);
-                Optional<String> bodyColumn = getBodyColumnLabel(metaData);
-                do {
-                    FlowFile flowFile = processSession.create();
-                    if (bodyColumn.isPresent()) {
-                        flowFile = stringToNewFlowFile(resultSet.getString(bodyColumn.get()), processSession, flowFile);
-                    }
-                    for (String column : attributeColumns) {
-                        processSession.putAttribute(flowFile, column.toLowerCase(), resultSet.getString(column));
-                    }
-                    log.trace("Sending flowfile: {}", attributeColumns);
-                    processSession.transfer(flowFile, SUCCESS);
-                } while (resultSet.next());
-            } else {
-                log.trace("Empty dataset");
-            }
+            jdbcTemplate.query(datasetQuery,resultSet-> {
+                        ResultSetMetaData metaData = resultSet.getMetaData();
+                        List<String> attributeColumns = getAttributeColumnLabels(metaData);
+                        Optional<String> bodyColumn = getBodyColumnLabel(metaData);
+                            FlowFile flowFile = processSession.create();
+                            if (bodyColumn.isPresent()) {
+                                flowFile = stringToNewFlowFile(resultSet.getString(bodyColumn.get()), processSession, flowFile);
+                            }
+                            for (String column : attributeColumns) {
+                                processSession.putAttribute(flowFile, column.toLowerCase(), resultSet.getString(column));
+                            }
+                            log.trace("Sending flowfile: {}", attributeColumns);
+                            processSession.transfer(flowFile, SUCCESS);
+                    });
         } catch (Exception ex) {
             log.error("Exception in DatasetReaderProcessor: {}", ex.getMessage());
             FlowFile flowFile = processSession.create();

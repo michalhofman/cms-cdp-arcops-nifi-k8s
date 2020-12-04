@@ -6,7 +6,9 @@ import com.google.inject.Singleton;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.ProcessContext;
+import org.springframework.jdbc.core.JdbcTemplate;
 
+import javax.sql.DataSource;
 import java.util.Properties;
 
 import static com.viacom.arcops.nifi.NiFiProperties.DBCP_SERVICE;
@@ -41,4 +43,12 @@ class DatabaseNifiModule extends AbstractModule {
         );
         return properties;
     }
+
+    @Provides
+    @Singleton
+    JdbcTemplate getJdbcTemplate(DBCPService dbcpService) {
+        DataSource dataSource = new DBCPServiceAdapter(dbcpService);
+        return new JdbcTemplate(dataSource);
+    }
+
 }
