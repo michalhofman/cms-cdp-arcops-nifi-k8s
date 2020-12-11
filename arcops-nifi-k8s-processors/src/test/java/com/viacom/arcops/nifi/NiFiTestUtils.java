@@ -18,7 +18,6 @@ import java.util.Objects;
 import java.util.Properties;
 
 import static com.viacom.arcops.nifi.NiFiProperties.DBCP_SERVICE;
-import static org.mockito.Mockito.mock;
 
 @Slf4j
 class NiFiTestUtils {
@@ -66,9 +65,8 @@ class NiFiTestUtils {
         return service;
     }
 
-    public static DBCPService addH2DbcpService(TestRunner runner, String initCommand) {
+    public static DBCPService addH2DbcpService(DBCPService service,TestRunner runner, String initCommand) {
         try {
-            DBCPService service = h2dbcpService();
             String dbscpServiceIdentifier = H2_TEST_DB_POOL_SERVICE;
             runner.addControllerService(dbscpServiceIdentifier, service);
             String url = "jdbc:h2:mem:test" + (initCommand != null ? initCommand : "");
@@ -86,7 +84,7 @@ class NiFiTestUtils {
     }
 
     static DBCPService addH2DbcpService(TestRunner runner) {
-        return addH2DbcpService(runner, null);
+        return addH2DbcpService(h2dbcpService(),runner, null);
     }
 
     static TestRunner prepareTestRunnerFor(Processor processor, Map<String, String> processorAttributes) {

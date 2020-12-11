@@ -4,6 +4,9 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import org.apache.nifi.dbcp.DBCPService;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import javax.sql.DataSource;
 
 public class TestModule extends AbstractModule {
     @Override
@@ -12,5 +15,14 @@ public class TestModule extends AbstractModule {
 
     @Singleton
     @Provides
-    DBCPService getService() { return NiFiTestUtils.h2dbcpService(); }
+    DBCPService getService() {
+        return NiFiTestUtils.h2dbcpService();
+    }
+
+    @Singleton
+    @Provides
+    JdbcTemplate getJdbcTemplate(DBCPService dbcpService) {
+        DataSource dataSource = new DBCPServiceAdapter(dbcpService);
+        return new JdbcTemplate(dataSource);
+    }
 }
