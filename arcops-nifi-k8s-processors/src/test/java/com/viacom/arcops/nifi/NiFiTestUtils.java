@@ -19,7 +19,6 @@ import java.util.Properties;
 
 import static com.viacom.arcops.nifi.NiFiProperties.DBCP_SERVICE;
 
-@Slf4j
 class NiFiTestUtils {
     private static final Logger LOG = LoggerFactory.getLogger(NiFiTestUtils.class);
 
@@ -61,8 +60,7 @@ class NiFiTestUtils {
 
     @Singleton
     public static DBCPService h2dbcpService() {
-            DBCPConnectionPool service = new DBCPConnectionPool();
-        return service;
+        return new DBCPConnectionPool();
     }
 
     public static DBCPService addH2DbcpService(DBCPService service,TestRunner runner, String initCommand) {

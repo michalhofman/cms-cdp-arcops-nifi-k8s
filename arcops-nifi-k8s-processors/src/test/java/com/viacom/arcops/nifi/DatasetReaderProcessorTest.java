@@ -8,6 +8,7 @@ import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,6 +21,7 @@ import static com.viacom.arcops.nifi.NiFiProperties.FAILURE;
 import static com.viacom.arcops.nifi.NiFiProperties.SUCCESS;
 import static com.viacom.arcops.nifi.NiFiTestUtils.*;
 import static org.assertj.core.api.Assertions.*;
+
 @Slf4j
 public class DatasetReaderProcessorTest {
     private TestRunner runner;
@@ -36,7 +38,6 @@ public class DatasetReaderProcessorTest {
         runner = prepareTestRunnerFor(processor, processorParameters);
         dbcpService = injector.getInstance(DBCPService.class);
         dbcpService = addH2DbcpService(dbcpService,runner,null);
-        // TODO: assert flow file content
     }
 
     @Test
@@ -58,18 +59,20 @@ public class DatasetReaderProcessorTest {
     }
 
     private void fillUpTable(int rowCount) throws SQLException {
-        dbcpService.getConnection().prepareCall("DROP TABLE if EXISTS any_table").execute();
-        dbcpService.getConnection().prepareCall("CREATE TABLE any_table (param1 INT NOT NULL, param2 DOUBLE NULL, param3 VARCHAR(1000) NULL)").execute();
-        int row = 0;
-        while (++row <= rowCount) {
-            String param1 = String.valueOf(row);
-            String param2 = param1 + "." + param1;
-            String param3 = "value" + param1;
-            String insert = "INSERT INTO any_table(param1, param2, param3) VALUES (" + param1 + ", " + param2 + ", " + "'" + param3 + "')";
-            log.info(insert);
-            dbcpService.getConnection().prepareCall(insert).execute();
-        }
+        try (Connection connection = dbcpService.getConnection()) {
+            connection.prepareCall("DROP TABLE if EXISTS any_table").execute();
+            connection.prepareCall("CREATE TABLE any_table (param1 INT NOT NULL, param2 DOUBLE NULL, param3 VARCHAR(1000) NULL)").execute();
+            int row = 0;
 
+            while (++row <= rowCount) {
+                String param1 = String.valueOf(row);
+                String param2 = param1 + "." + param1;
+                String param3 = "value" + param1;
+                String insert = "INSERT INTO any_table(param1, param2, param3) VALUES (" + param1 + ", " + param2 + ", " + "'" + param3 + "')";
+                log.info(insert);
+                connection.prepareCall(insert).execute();
+            }
+        }
     }
 
 }

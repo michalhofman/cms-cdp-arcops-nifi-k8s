@@ -23,13 +23,6 @@ class DatabaseNifiModule extends AbstractModule {
         this.properties = getProperties(context);
     }
 
-    @Override
-    protected void configure() {
-//        Properties defaultProperties = Utils.loadProperties("dbconnection.properties");
-//        defaultProperties.putAll(properties); // override properties from file with the one set on Nifi
-//        Names.bindProperties(binder(), defaultProperties);
-    }
-
     @Provides
     @Singleton
     DBCPService getDataSource() {
