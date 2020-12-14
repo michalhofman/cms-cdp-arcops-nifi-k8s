@@ -223,7 +223,7 @@ public class ArcPublishProcessor extends GuiceConfiguredProcessor {
         arcServer.set(context.getProperty(ARC_SERVER_DESCRIPTOR).getValue());
         arcEnvironment.set(context.getProperty(ARC_ENVIRONMENT_DESCRIPTOR).getValue());
         transitUri.set(arcEnvironment.get() + '@' + arcServer.get());
-        ucaWriteService.set(initializeInjector(context).getInstance(UcaWriteService.class));
+        ucaWriteService.set(initializeArcInjector().getInstance(UcaWriteService.class));
 
         log.info("Scheduled {} with arcServer={} and arcEnvironment={}", ArcPublishProcessor.class.getSimpleName(), arcServer.get(), arcEnvironment.get());
 

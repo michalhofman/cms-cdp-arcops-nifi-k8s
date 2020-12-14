@@ -9,6 +9,11 @@ import com.viacom.arcops.uca.UcaWriteService;
 import com.viacom.arcops.uca.UcaWriteServiceImpl;
 
 public class ArcPublishModule extends AbstractModule {
+    @Provides
+    @Singleton
+    ArcServer getArcServer(){
+        return new ArcServer();
+    }
 
     @Override
     protected void configure() {

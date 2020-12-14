@@ -2,5 +2,6 @@ com.viacom.arcops.nifi.LogToDbProcessor
 com.viacom.arcops.nifi.PenalizingProcessor
 com.viacom.arcops.nifi.publish.ArcPublishProcessor
 com.viacom.arcops.nifi.RouteOnSQLCondition
+com.viacom.arcops.nifi.DatasetReaderProcessor
 org.apache.nifi.amqp.processors.ExtendedConsumeAMQP
 org.apache.nifi.amqp.processors.ConsumeAMQPToDatabase

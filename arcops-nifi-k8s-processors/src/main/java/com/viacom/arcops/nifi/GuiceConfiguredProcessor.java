@@ -3,6 +3,7 @@ package com.viacom.arcops.nifi;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
+import com.viacom.arcops.nifi.publish.ArcPublishModule;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 
@@ -26,6 +27,9 @@ public abstract class GuiceConfiguredProcessor extends AbstractProcessor {
         return testInjector == null ? Guice.createInjector(new DatabaseNifiModule(context)) : testInjector;
     }
 
+    public Injector initializeArcInjector(){
+        return testInjector == null ? Guice.createInjector(new ArcPublishModule()) : testInjector;
+    }
     protected abstract Function<Map<String, String>, List<Module>> getModulesCreator();
 
 }
