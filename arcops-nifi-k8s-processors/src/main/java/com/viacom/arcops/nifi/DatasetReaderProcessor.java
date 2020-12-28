@@ -21,10 +21,10 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import java.sql.*;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.function.Function;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -36,10 +36,10 @@ import static org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace;
 @EventDriven
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"DB", "dataset", "sql", "select", "flowfile", "rows"})
-@CapabilityDescription("DatasetReaderProcessor is used to execute stored procedure or a SELECT query providing a dataset. "+
-        "Have ability do adapt sql Query with usage of processor properties."+
-        " To use this feature you have to add property which key will follow pattern  #['propertyName'], and in query you have to use placeholder witch will be same as property key."+
-        "ex. select * from #['propertyName']"+
+@CapabilityDescription("DatasetReaderProcessor is used to execute stored procedure or a SELECT query providing a dataset. " +
+        "Have ability do adapt sql Query with usage of processor properties." +
+        " To use this feature you have to add property which key will follow pattern  #['propertyName'], and in query you have to use placeholder which will be same as property key." +
+        "ex. select * from #['propertyName']" +
         "Each row is then pushed as a flowfile with designated column serving as its body whereas the others are set as a flowfile attribues.")
 @WritesAttributes({
         @WritesAttribute(attribute = ATTR_EXCEPTION_MESSAGE, description = "stack trace taken from exception occurred during processing"),
@@ -99,7 +99,7 @@ public class DatasetReaderProcessor extends GuiceConfiguredProcessor {
     @Override
     public void onTrigger(ProcessContext processContext, ProcessSession processSession) throws ProcessException {
         try {
-            Map<String, String> properties = getPropertiesWhichMatchesWithPattern(processContext, processorPropertiesRegex);
+            Map<String, String> properties = getPropertiesWhichMatchPattern(processContext, processorPropertiesRegex);
             datasetQuery = processDatasetQuery(datasetQuery, properties);
             log.info("Reading dataset: {}", datasetQuery);
 
@@ -113,7 +113,7 @@ public class DatasetReaderProcessor extends GuiceConfiguredProcessor {
         }
     }
 
-    Map<String, String> getPropertiesWhichMatchesWithPattern(ProcessContext processContext, String propertiesPattern) {
+    Map<String, String> getPropertiesWhichMatchPattern(ProcessContext processContext, String propertiesPattern) {
         return processContext.getProperties().entrySet().stream()
                 .filter(property -> Pattern.compile(propertiesPattern).matcher(property.getKey().getName()).matches())
                 .collect(Collectors.toMap(property -> property.getKey().getName(), Map.Entry::getValue));

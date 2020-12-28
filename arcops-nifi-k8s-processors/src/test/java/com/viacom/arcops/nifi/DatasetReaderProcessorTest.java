@@ -119,7 +119,7 @@ class DatasetReaderProcessorTest {
         runner.setProperty("#dd","value2");
         runner.setProperty("#21","value2");
         runner.setProperty("#22","value2");
-        Map<String, String> matchingProperties = processor.getPropertiesWhichMatchesWithPattern(runner.getProcessContext(), "#\\d+");
+        Map<String, String> matchingProperties = processor.getPropertiesWhichMatchPattern(runner.getProcessContext(), "#\\d+");
         assertThat(matchingProperties).containsOnlyKeys("#21","#22");
     }
 
@@ -128,7 +128,7 @@ class DatasetReaderProcessorTest {
         runner.setProperty("Key1","value1");
         runner.setProperty("#[Key2]","value2");
         runner.setProperty("#dd","value2");
-        Map<String, String> matchingProperties = processor.getPropertiesWhichMatchesWithPattern(runner.getProcessContext(), "#\\d+");
+        Map<String, String> matchingProperties = processor.getPropertiesWhichMatchPattern(runner.getProcessContext(), "#\\d+");
         assertThat(matchingProperties).isEmpty();
     }
 
@@ -148,7 +148,7 @@ class DatasetReaderProcessorTest {
 
     @Test
     void shouldNotExtractAnyPropertiesSecondTest(){
-        Map<String, String> matchingProperties = processor.getPropertiesWhichMatchesWithPattern(runner.getProcessContext(), "#\\d+");
+        Map<String, String> matchingProperties = processor.getPropertiesWhichMatchPattern(runner.getProcessContext(), "#\\d+");
         assertThat(matchingProperties).isEmpty();
     }
 
