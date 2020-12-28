@@ -136,11 +136,11 @@ class DatasetReaderProcessorTest {
     void integrationTestWithSqlPlaceholdersFeature() throws SQLException {
         runner.setProperty("#[Key2]","'low'");
         runner.setProperty(QUERY.getName(),"Select * from any_table where param4 = #[Key2]");
-        fillUpTable(4, "low");
+        fillUpTable(5, "low");
         runner.run();
         runner.assertAllFlowFilesTransferred(SUCCESS);
         List<MockFlowFile> successedFlowFiles = runner.getFlowFilesForRelationship(SUCCESS);
-        assertThat(successedFlowFiles.size()).isEqualTo(4);
+        assertThat(successedFlowFiles.size()).isEqualTo(5);
         boolean allFlowFilesHaveProperParam4 = successedFlowFiles.stream().allMatch(mockFlowFile -> "low".equals(mockFlowFile.getAttribute("param4")));
         assertThat(allFlowFilesHaveProperParam4).isTrue();
     }

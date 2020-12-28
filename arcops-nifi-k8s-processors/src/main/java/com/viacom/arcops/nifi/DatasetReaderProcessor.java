@@ -77,8 +77,6 @@ public class DatasetReaderProcessor extends GuiceConfiguredProcessor {
     private String columnForFlowFileBody;
     private String datasetQuery;
 
-    private String processorPropertiesRegex = "#\\[\\w+]";
-
     @SuppressWarnings("unused")
     DatasetReaderProcessor(Injector injector) {
         super(injector);
@@ -99,6 +97,7 @@ public class DatasetReaderProcessor extends GuiceConfiguredProcessor {
     @Override
     public void onTrigger(ProcessContext processContext, ProcessSession processSession) throws ProcessException {
         try {
+            String processorPropertiesRegex = "#\\[\\w+]";
             Map<String, String> properties = getPropertiesWhichMatchPattern(processContext, processorPropertiesRegex);
             datasetQuery = processDatasetQuery(datasetQuery, properties);
             log.info("Reading dataset: {}", datasetQuery);
