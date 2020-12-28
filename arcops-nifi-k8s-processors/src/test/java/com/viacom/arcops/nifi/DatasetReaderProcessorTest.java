@@ -132,6 +132,17 @@ class DatasetReaderProcessorTest {
         assertThat(matchingProperties).isEmpty();
     }
 
+    @Test
+    void integrationTestWithSqlPlaceholdersFeature() throws SQLException {
+        runner.setProperty("#[Key2]","'low'");
+        runner.setProperty(QUERY.getName(),"Select * from any_table where param4 = #[Key2]");
+        fillUpTable(4);
+        runner.run();
+        List<MockFlowFile> successedFlowFiles = runner.getFlowFilesForRelationship(SUCCESS);
+        boolean allFlowFilesHaveProperParam4 = successedFlowFiles.stream().allMatch(mockFlowFile -> "low".equals(mockFlowFile.getAttribute("param4")));
+        assertThat(allFlowFilesHaveProperParam4).isTrue();
+    }
+
 
     @Test
     void shouldNotExtractAnyPropertiesSecondTest(){
@@ -152,7 +163,8 @@ class DatasetReaderProcessorTest {
                 String param1 = String.valueOf(row);
                 String param2 = param1 + "." + param1;
                 String param3 = "value" + param1;
-                String insert = "INSERT INTO any_table(param1, param2, param3) VALUES (" + param1 + ", " + param2 + ", " + "'" + param3 + "')";
+                String param4 = "low";
+                String insert = "INSERT INTO any_table(param1, param2, param3, param4) VALUES (" + param1 + ", " + param2 + ", " + "'" + param3 + "'"+", " +"'" + param4 + "'"+")";
                 log.info(insert);
                 connection.prepareCall(insert).execute();
             }
