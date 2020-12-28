@@ -136,9 +136,11 @@ class DatasetReaderProcessorTest {
     void integrationTestWithSqlPlaceholdersFeature() throws SQLException {
         runner.setProperty("#[Key2]","'low'");
         runner.setProperty(QUERY.getName(),"Select * from any_table where param4 = #[Key2]");
-        fillUpTable(4);
+        fillUpTable(4, "low");
         runner.run();
+        runner.assertAllFlowFilesTransferred(SUCCESS);
         List<MockFlowFile> successedFlowFiles = runner.getFlowFilesForRelationship(SUCCESS);
+        assertThat(successedFlowFiles.size()).isEqualTo(4);
         boolean allFlowFilesHaveProperParam4 = successedFlowFiles.stream().allMatch(mockFlowFile -> "low".equals(mockFlowFile.getAttribute("param4")));
         assertThat(allFlowFilesHaveProperParam4).isTrue();
     }
@@ -150,24 +152,30 @@ class DatasetReaderProcessorTest {
         assertThat(matchingProperties).isEmpty();
     }
 
-
-
-
     private void fillUpTable(int rowCount) throws SQLException {
+        fillUpTable(rowCount,"");
+    }
+
+    private void fillUpTable(int rowCount, String param4) throws SQLException {
         try (Connection connection = dbcpService.getConnection()) {
             connection.prepareCall("DROP TABLE if EXISTS any_table").execute();
-            connection.prepareCall("CREATE TABLE any_table (param1 INT NOT NULL, param2 DOUBLE NULL, param3 VARCHAR(1000) NULL)").execute();
+            connection.prepareCall("CREATE TABLE any_table (param1 INT NOT NULL, param2 DOUBLE NULL, param3 VARCHAR(1000) NULL, param4 VARCHAR(1000))").execute();
             int row = 0;
+            insertRowsIntoTable( param4, connection, row, rowCount);
+            int notValidRowNumber = new Random(rowCount).nextInt();
+            insertRowsIntoTable("Not" + param4, connection, row, notValidRowNumber);
+        }
+    }
 
-            while (++row <= rowCount) {
-                String param1 = String.valueOf(row);
-                String param2 = param1 + "." + param1;
-                String param3 = "value" + param1;
-                String param4 = "low";
-                String insert = "INSERT INTO any_table(param1, param2, param3, param4) VALUES (" + param1 + ", " + param2 + ", " + "'" + param3 + "'"+", " +"'" + param4 + "'"+")";
-                log.info(insert);
-                connection.prepareCall(insert).execute();
-            }
+    private void insertRowsIntoTable(String param4, Connection connection, int row, int rowNumber) throws SQLException {
+        int rowCount = row + rowNumber;
+        while (++row <= rowCount){
+            String param1 = String.valueOf(row);
+            String param2 = param1 + "." + param1;
+            String param3 = "value" + param1;
+            String insert = "INSERT INTO any_table(param1, param2, param3, param4) VALUES (" + param1 + ", " + param2 + ", " + "'" + param3 + "'"+", " +"'" + param4 + "'"+")";
+            log.info(insert);
+            connection.prepareCall(insert).execute();
         }
     }
 
