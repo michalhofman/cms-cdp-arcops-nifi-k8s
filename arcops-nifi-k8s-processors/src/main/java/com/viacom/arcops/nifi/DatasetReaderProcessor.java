@@ -125,7 +125,8 @@ public class DatasetReaderProcessor extends GuiceConfiguredProcessor {
 
         for (Map.Entry<String, String> property : properties.entrySet()) {
             String propertyKey = property.getKey();
-            String propertyValue = property.getValue();
+            String propertyValue = property.getValue().replace("'", "''");
+            propertyValue = "'" + propertyValue + "'";
             query = query.replace(propertyKey, propertyValue);
         }
 

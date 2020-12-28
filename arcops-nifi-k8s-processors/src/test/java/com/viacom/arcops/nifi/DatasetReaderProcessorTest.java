@@ -65,7 +65,7 @@ class DatasetReaderProcessorTest {
         }};
 
         String expectedQuery = processor.processDatasetQuery(query, propertiesMap);
-        assertThat(expectedQuery).isEqualTo("key.value");
+        assertThat(expectedQuery).isEqualTo("'key.value'");
     }
 
     @Test
@@ -76,7 +76,7 @@ class DatasetReaderProcessorTest {
         }};
 
         String expectedQuery = processor.processDatasetQuery(query, propertiesMap);
-        assertThat(expectedQuery).isEqualTo("key.value and key.value");
+        assertThat(expectedQuery).isEqualTo("'key.value' and 'key.value'");
     }
 
     @Test
@@ -90,7 +90,7 @@ class DatasetReaderProcessorTest {
         };
 
         String expectedQuery = processor.processDatasetQuery(query, propertiesMap);
-        assertThat(expectedQuery).isEqualTo("key.value and key.value2");
+        assertThat(expectedQuery).isEqualTo("'key.value' and 'key.value2'");
     }
 
     @Test
@@ -101,7 +101,7 @@ class DatasetReaderProcessorTest {
         }};
 
         String expectedQuery = processor.processDatasetQuery(query, propertiesMap);
-        assertThat(expectedQuery).isEqualTo("Select * from table where property = key.value");
+        assertThat(expectedQuery).isEqualTo("Select * from table where property = 'key.value'");
     }
 
     @Test
@@ -113,29 +113,29 @@ class DatasetReaderProcessorTest {
     }
 
     @Test
-    void shouldExtractProperProperties(){
-        runner.setProperty("Key1","value1");
-        runner.setProperty("#[Key2]","value2");
-        runner.setProperty("#dd","value2");
-        runner.setProperty("#21","value2");
-        runner.setProperty("#22","value2");
+    void shouldExtractProperProperties() {
+        runner.setProperty("Key1", "value1");
+        runner.setProperty("#[Key2]", "value2");
+        runner.setProperty("#dd", "value2");
+        runner.setProperty("#21", "value2");
+        runner.setProperty("#22", "value2");
         Map<String, String> matchingProperties = processor.getPropertiesWhichMatchPattern(runner.getProcessContext(), "#\\d+");
-        assertThat(matchingProperties).containsOnlyKeys("#21","#22");
+        assertThat(matchingProperties).containsOnlyKeys("#21", "#22");
     }
 
     @Test
-    void shouldNotExtractAnyProperties(){
-        runner.setProperty("Key1","value1");
-        runner.setProperty("#[Key2]","value2");
-        runner.setProperty("#dd","value2");
+    void shouldNotExtractAnyProperties() {
+        runner.setProperty("Key1", "value1");
+        runner.setProperty("#[Key2]", "value2");
+        runner.setProperty("#dd", "value2");
         Map<String, String> matchingProperties = processor.getPropertiesWhichMatchPattern(runner.getProcessContext(), "#\\d+");
         assertThat(matchingProperties).isEmpty();
     }
 
     @Test
     void integrationTestWithSqlPlaceholdersFeature() throws SQLException {
-        runner.setProperty("#[Key2]","'low'");
-        runner.setProperty(QUERY.getName(),"Select * from any_table where param4 = #[Key2]");
+        runner.setProperty("#[Key2]", "low");
+        runner.setProperty(QUERY.getName(), "Select * from any_table where param4 = #[Key2]");
         fillUpTable(5, "low");
         runner.run();
         runner.assertAllFlowFilesTransferred(SUCCESS);
@@ -147,13 +147,13 @@ class DatasetReaderProcessorTest {
 
 
     @Test
-    void shouldNotExtractAnyPropertiesSecondTest(){
+    void shouldNotExtractAnyPropertiesSecondTest() {
         Map<String, String> matchingProperties = processor.getPropertiesWhichMatchPattern(runner.getProcessContext(), "#\\d+");
         assertThat(matchingProperties).isEmpty();
     }
 
     private void fillUpTable(int rowCount) throws SQLException {
-        fillUpTable(rowCount,"");
+        fillUpTable(rowCount, "");
     }
 
     private void fillUpTable(int rowCount, String param4) throws SQLException {
@@ -161,7 +161,7 @@ class DatasetReaderProcessorTest {
             connection.prepareCall("DROP TABLE if EXISTS any_table").execute();
             connection.prepareCall("CREATE TABLE any_table (param1 INT NOT NULL, param2 DOUBLE NULL, param3 VARCHAR(1000) NULL, param4 VARCHAR(1000))").execute();
             int row = 0;
-            insertRowsIntoTable( param4, connection, row, rowCount);
+            insertRowsIntoTable(param4, connection, row, rowCount);
             int notValidRowNumber = new Random(rowCount).nextInt();
             insertRowsIntoTable("Not" + param4, connection, row, notValidRowNumber);
         }
@@ -169,11 +169,11 @@ class DatasetReaderProcessorTest {
 
     private void insertRowsIntoTable(String param4, Connection connection, int row, int rowNumber) throws SQLException {
         int rowCount = row + rowNumber;
-        while (++row <= rowCount){
+        while (++row <= rowCount) {
             String param1 = String.valueOf(row);
             String param2 = param1 + "." + param1;
             String param3 = "value" + param1;
-            String insert = "INSERT INTO any_table(param1, param2, param3, param4) VALUES (" + param1 + ", " + param2 + ", " + "'" + param3 + "'"+", " +"'" + param4 + "'"+")";
+            String insert = "INSERT INTO any_table(param1, param2, param3, param4) VALUES (" + param1 + ", " + param2 + ", " + "'" + param3 + "'" + ", " + "'" + param4 + "'" + ")";
             log.info(insert);
             connection.prepareCall(insert).execute();
         }
