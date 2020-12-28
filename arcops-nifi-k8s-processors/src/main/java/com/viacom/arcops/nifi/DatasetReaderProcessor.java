@@ -19,6 +19,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.StringUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.sql.ResultSetMetaData;
@@ -69,6 +70,7 @@ public class DatasetReaderProcessor extends GuiceConfiguredProcessor {
                 .name(propertyDescriptorName)
                 .addValidator(new StandardValidators.StringLengthValidator(0, 1000))
                 .dynamic(true)
+                .defaultValue(StringUtils.EMPTY)
                 .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                 .build();
     }
