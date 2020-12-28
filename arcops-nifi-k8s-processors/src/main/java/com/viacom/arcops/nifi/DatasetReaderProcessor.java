@@ -26,7 +26,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.viacom.arcops.nifi.NiFiProperties.*;
@@ -38,10 +37,10 @@ import static org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace;
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"DB", "dataset", "sql", "select", "flowfile", "rows"})
 @CapabilityDescription("DatasetReaderProcessor is used to execute stored procedure or a SELECT query providing a dataset. " +
-        "Have ability do adapt sql Query with usage of processor properties." +
-        " To use this feature you have to add property which key will follow pattern  #['propertyName'], and in query you have to use placeholder which will be same as property key." +
-        "ex. select * from #['propertyName']" +
-        "Each row is then pushed as a flowfile with designated column serving as its body whereas the others are set as a flowfile attribues.")
+        "Each row is then pushed as a flowfile with designated column serving as its body whereas the others are set as a flowfile attribues." +
+        "Query can have placeholders which will be replaced with user property values." +
+        "Within query each name of such a property need to follow pattern: #[propertyName]." +
+        "For example to run query like: select * from #[propertyName] there must be provided property named: propertyName.")
 @WritesAttributes({
         @WritesAttribute(attribute = ATTR_EXCEPTION_MESSAGE, description = "stack trace taken from exception occurred during processing"),
         @WritesAttribute(attribute = ATTR_EXCEPTION_STACKTRACE, description = "error message taken from exception occurred during processing")
@@ -66,7 +65,7 @@ public class DatasetReaderProcessor extends GuiceConfiguredProcessor {
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
-                .description("Dynamic DB query parameter that should be named like #['propertyName']")
+                .description("Dynamic DB query parameter")
                 .name(propertyDescriptorName)
                 .addValidator(new StandardValidators.StringLengthValidator(0, 1000))
                 .dynamic(true)
@@ -99,8 +98,7 @@ public class DatasetReaderProcessor extends GuiceConfiguredProcessor {
     @Override
     public void onTrigger(ProcessContext processContext, ProcessSession processSession) throws ProcessException {
         try {
-            String processorPropertiesRegex = "#\\[\\w+]";
-            Map<String, String> properties = getPropertiesWhichMatchPattern(processContext, processorPropertiesRegex);
+            Map<String, String> properties = getDynamicProperties(processContext);
             datasetQuery = processDatasetQuery(datasetQuery, properties);
             log.info("Reading dataset: {}", datasetQuery);
 
@@ -114,9 +112,9 @@ public class DatasetReaderProcessor extends GuiceConfiguredProcessor {
         }
     }
 
-    Map<String, String> getPropertiesWhichMatchPattern(ProcessContext processContext, String propertiesPattern) {
+    Map<String, String> getDynamicProperties(ProcessContext processContext) {
         return processContext.getProperties().entrySet().stream()
-                .filter(property -> Pattern.compile(propertiesPattern).matcher(property.getKey().getName()).matches())
+                .filter(p->p.getKey().isDynamic())
                 .collect(Collectors.toMap(property -> property.getKey().getName(), Map.Entry::getValue));
     }
 
@@ -129,7 +127,7 @@ public class DatasetReaderProcessor extends GuiceConfiguredProcessor {
             String propertyKey = property.getKey();
             String propertyValue = property.getValue().replace("'", "''");
             propertyValue = "'" + propertyValue + "'";
-            query = query.replace(propertyKey, propertyValue);
+            query = query.replace("#["+propertyKey+"]", propertyValue);
         }
 
         return query;

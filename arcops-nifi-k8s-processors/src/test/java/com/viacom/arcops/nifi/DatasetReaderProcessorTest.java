@@ -61,7 +61,7 @@ class DatasetReaderProcessorTest {
     void shouldProcessQuery() {
         String query = "#[propertyName]";
         HashMap<String, String> propertiesMap = new HashMap<String, String>() {{
-            put("#[propertyName]", "key.value");
+            put("propertyName", "key.value");
         }};
 
         String expectedQuery = processor.processDatasetQuery(query, propertiesMap);
@@ -72,7 +72,7 @@ class DatasetReaderProcessorTest {
     void shouldProcessQueryWithDuplication() {
         String query = "#[propertyName] and #[propertyName]";
         HashMap<String, String> propertiesMap = new HashMap<String, String>() {{
-            put("#[propertyName]", "key.value");
+            put("propertyName", "key.value");
         }};
 
         String expectedQuery = processor.processDatasetQuery(query, propertiesMap);
@@ -81,11 +81,11 @@ class DatasetReaderProcessorTest {
 
     @Test
     void shouldProcessQueryWith2Params() {
-        String query = "#12 and #21";
+        String query = "#[12] and #[21]";
         HashMap<String, String> propertiesMap = new HashMap<String, String>() {
             {
-                put("#12", "key.value");
-                put("#21", "key.value2");
+                put("12", "key.value");
+                put("21", "key.value2");
             }
         };
 
@@ -95,7 +95,7 @@ class DatasetReaderProcessorTest {
 
     @Test
     void shouldProcessComplicatedQuery() {
-        String query = "Select * from table where property = propertyName";
+        String query = "Select * from table where property = #[propertyName]";
         HashMap<String, String> propertiesMap = new HashMap<String, String>() {{
             put("propertyName", "key.value");
         }};
@@ -113,28 +113,22 @@ class DatasetReaderProcessorTest {
     }
 
     @Test
-    void shouldExtractProperProperties() {
-        runner.setProperty("Key1", "value1");
-        runner.setProperty("#[Key2]", "value2");
-        runner.setProperty("#dd", "value2");
-        runner.setProperty("#21", "value2");
-        runner.setProperty("#22", "value2");
-        Map<String, String> matchingProperties = processor.getPropertiesWhichMatchPattern(runner.getProcessContext(), "#\\d+");
-        assertThat(matchingProperties).containsOnlyKeys("#21", "#22");
+    void shouldExtractProperProperties(){
+        runner.setProperty("Key1","value1");
+        runner.setProperty("Key2","value2");
+        Map<String, String> matchingProperties = processor.getDynamicProperties(runner.getProcessContext());
+        assertThat(matchingProperties).containsOnlyKeys("Key1","Key2");
     }
 
     @Test
-    void shouldNotExtractAnyProperties() {
-        runner.setProperty("Key1", "value1");
-        runner.setProperty("#[Key2]", "value2");
-        runner.setProperty("#dd", "value2");
-        Map<String, String> matchingProperties = processor.getPropertiesWhichMatchPattern(runner.getProcessContext(), "#\\d+");
+    void shouldNotExtractAnyProperties(){
+        Map<String, String> matchingProperties = processor.getDynamicProperties(runner.getProcessContext());
         assertThat(matchingProperties).isEmpty();
     }
 
     @Test
     void integrationTestWithSqlPlaceholdersFeature() throws SQLException {
-        runner.setProperty("#[Key2]", "low");
+        runner.setProperty("Key2", "low");
         runner.setProperty(QUERY.getName(), "Select * from any_table where param4 = #[Key2]");
         fillUpTable(5, "low");
         runner.run();
@@ -143,13 +137,6 @@ class DatasetReaderProcessorTest {
         assertThat(successedFlowFiles.size()).isEqualTo(5);
         boolean allFlowFilesHaveProperParam4 = successedFlowFiles.stream().allMatch(mockFlowFile -> "low".equals(mockFlowFile.getAttribute("param4")));
         assertThat(allFlowFilesHaveProperParam4).isTrue();
-    }
-
-
-    @Test
-    void shouldNotExtractAnyPropertiesSecondTest() {
-        Map<String, String> matchingProperties = processor.getPropertiesWhichMatchPattern(runner.getProcessContext(), "#\\d+");
-        assertThat(matchingProperties).isEmpty();
     }
 
     private void fillUpTable(int rowCount) throws SQLException {
