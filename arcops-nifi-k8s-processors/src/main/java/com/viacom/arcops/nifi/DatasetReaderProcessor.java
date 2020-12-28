@@ -12,7 +12,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -21,9 +21,11 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import java.sql.*;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.viacom.arcops.nifi.NiFiProperties.*;
@@ -35,6 +37,9 @@ import static org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace;
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"DB", "dataset", "sql", "select", "flowfile", "rows"})
 @CapabilityDescription("DatasetReaderProcessor is used to execute stored procedure or a SELECT query providing a dataset. " +
+        "Have ability do adapt sql Query with usage of processor properties." +
+        " To use this feature you have to add property which key will follow pattern  #['propertyName'], and in query you have to use placeholder which will be same as property key." +
+        "ex. select * from #['propertyName']" +
         "Each row is then pushed as a flowfile with designated column serving as its body whereas the others are set as a flowfile attribues.")
 @WritesAttributes({
         @WritesAttribute(attribute = ATTR_EXCEPTION_MESSAGE, description = "stack trace taken from exception occurred during processing"),
@@ -57,6 +62,17 @@ public class DatasetReaderProcessor extends GuiceConfiguredProcessor {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .description("Dynamic DB query parameter that should be named like #['propertyName']")
+                .name(propertyDescriptorName)
+                .addValidator(new StandardValidators.StringLengthValidator(0, 1000))
+                .dynamic(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .build();
+    }
+
     private JdbcTemplate jdbcTemplate;
     private String columnForFlowFileBody;
     private String datasetQuery;
@@ -67,7 +83,8 @@ public class DatasetReaderProcessor extends GuiceConfiguredProcessor {
     }
 
     @SuppressWarnings("unused")
-    public DatasetReaderProcessor() {}
+    public DatasetReaderProcessor() {
+    }
 
     @OnScheduled
     @SuppressWarnings("unused")
@@ -80,33 +97,62 @@ public class DatasetReaderProcessor extends GuiceConfiguredProcessor {
     @Override
     public void onTrigger(ProcessContext processContext, ProcessSession processSession) throws ProcessException {
         try {
+            String processorPropertiesRegex = "#\\[\\w+]";
+            Map<String, String> properties = getPropertiesWhichMatchPattern(processContext, processorPropertiesRegex);
+            datasetQuery = processDatasetQuery(datasetQuery, properties);
             log.info("Reading dataset: {}", datasetQuery);
-            jdbcTemplate.query(datasetQuery,resultSet-> {
-                        ResultSetMetaData metaData = resultSet.getMetaData();
-                        List<String> attributeColumns = getAttributeColumnLabels(metaData);
-                        Optional<String> bodyColumn = getBodyColumnLabel(metaData);
-                            FlowFile flowFile = processSession.create();
-                            if (bodyColumn.isPresent()) {
-                                flowFile = stringToNewFlowFile(resultSet.getString(bodyColumn.get()), processSession, flowFile);
-                            }
-                            for (String column : attributeColumns) {
-                                processSession.putAttribute(flowFile, column.toLowerCase(), resultSet.getString(column));
-                            }
-                            log.trace("Sending flowfile: {}", attributeColumns);
-                            processSession.transfer(flowFile, SUCCESS);
-                    });
+
+            processFlowFilesQuery(processSession);
         } catch (Exception ex) {
             log.error("Exception in DatasetReaderProcessor: {}", ex.getMessage());
-            FlowFile flowFile = processSession.create();
-            flowFile = processSession.putAttribute(flowFile, ATTR_EXCEPTION_MESSAGE, getMessage(ex));
-            flowFile = processSession.putAttribute(flowFile, ATTR_EXCEPTION_STACKTRACE, getStackTrace(ex));
-            processSession.transfer(flowFile, FAILURE);
+            FlowFile flowFileOnError = processSession.create();
+            flowFileOnError = processSession.putAttribute(flowFileOnError, ATTR_EXCEPTION_MESSAGE, getMessage(ex));
+            flowFileOnError = processSession.putAttribute(flowFileOnError, ATTR_EXCEPTION_STACKTRACE, getStackTrace(ex));
+            processSession.transfer(flowFileOnError, FAILURE);
         }
+    }
+
+    Map<String, String> getPropertiesWhichMatchPattern(ProcessContext processContext, String propertiesPattern) {
+        return processContext.getProperties().entrySet().stream()
+                .filter(property -> Pattern.compile(propertiesPattern).matcher(property.getKey().getName()).matches())
+                .collect(Collectors.toMap(property -> property.getKey().getName(), Map.Entry::getValue));
+    }
+
+    String processDatasetQuery(String query, Map<String, String> properties) {
+        if (properties.isEmpty()) {
+            return query;
+        }
+
+        for (Map.Entry<String, String> property : properties.entrySet()) {
+            String propertyKey = property.getKey();
+            String propertyValue = property.getValue().replace("'", "''");
+            propertyValue = "'" + propertyValue + "'";
+            query = query.replace(propertyKey, propertyValue);
+        }
+
+        return query;
+    }
+
+    private void processFlowFilesQuery(ProcessSession processSession) {
+        jdbcTemplate.query(datasetQuery, resultSet -> {
+            ResultSetMetaData metaData = resultSet.getMetaData();
+            List<String> attributeColumns = getAttributeColumnLabels(metaData);
+            Optional<String> bodyColumn = getBodyColumnLabel(metaData);
+            FlowFile flowFile = processSession.create();
+            if (bodyColumn.isPresent()) {
+                flowFile = stringToNewFlowFile(resultSet.getString(bodyColumn.get()), processSession, flowFile);
+            }
+            for (String column : attributeColumns) {
+                processSession.putAttribute(flowFile, column.toLowerCase(), resultSet.getString(column));
+            }
+            log.trace("Sending flowfile: {}", attributeColumns);
+            processSession.transfer(flowFile, SUCCESS);
+        });
     }
 
     private List<String> getAttributeColumnLabels(ResultSetMetaData resultSetMetaData) throws SQLException {
         List<String> columns = new ArrayList<>();
-        int columnId = resultSetMetaData.getColumnCount()+1;
+        int columnId = resultSetMetaData.getColumnCount() + 1;
         while (--columnId > 0) {
             if (!resultSetMetaData.getColumnLabel(columnId).equals(columnForFlowFileBody)) {
                 columns.add(resultSetMetaData.getColumnLabel(columnId));
@@ -116,7 +162,7 @@ public class DatasetReaderProcessor extends GuiceConfiguredProcessor {
     }
 
     private Optional<String> getBodyColumnLabel(ResultSetMetaData resultSetMetaData) throws SQLException {
-        int columnId = resultSetMetaData.getColumnCount()+1;
+        int columnId = resultSetMetaData.getColumnCount() + 1;
         while (--columnId > 0) {
             if (resultSetMetaData.getColumnLabel(columnId).equals(columnForFlowFileBody)) {
                 return Optional.of(resultSetMetaData.getColumnLabel(columnId));
